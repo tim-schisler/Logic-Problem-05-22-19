@@ -17,13 +17,15 @@
 
     · Make up a data set to best demonstrate your solution
     · Check solution into GitHub"
-
 */
 package logicproblem0522;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
 import javafx.application.Application;
 import javafx.event.*;
 import javafx.scene.Scene;
@@ -42,15 +44,13 @@ public class LogicProblem0522 extends Application {
     private static Connection lpConnection() {
         try {
             // load the driver
-            Class.forName("com.mysql.jdbc.Driver");
-            
+            Class.forName("com.mysql.cj.jdbc.Driver");
             // get a connection
-            String dbURL = "jdbc:mysql://localhost:3306/rewarddb";
-            String username = "root";
+            String dbURL = "jdbc:mysql://localhost:3306/rewarddb"
+                    + "?serverTimezone=UTC";
+            String username = "audience";
             String password = "sesame";
-            return DriverManager.getConnection(
-                    dbURL, username, password);
-            
+            return DriverManager.getConnection(dbURL, username, password);
         } catch (ClassNotFoundException e) {
             System.out.println("Error loading the databse driver: ");
             System.out.println(e.getMessage());
@@ -63,13 +63,37 @@ public class LogicProblem0522 extends Application {
     }
     
     /**
+     getCustomerIDs method: queries the database and returns each
+     distinct customer ID number.
+     */
+    private static ArrayList<Integer> getCustomerIDs() {
+        ArrayList<Integer> ids = new ArrayList<>();
+        String query = "SELECT DISTINCT customer_id FROM transactions";
+        Connection conn = lpConnection();
+        try {
+            Statement st = conn.createStatement();
+            ResultSet rs = st.executeQuery(query);
+            while( rs.next() ) {    //loop through each record in the DB
+                ids.add(rs.getInt("customer_id"));
+            }
+            rs.close();
+            st.close();
+            conn.close();
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
+        
+        return ids;
+    }
+    
+    
+    /**
      start method: sets up the GUI for this JavaFX application.
      */
     private TextField currentMonth = new TextField();
     private TextField lastMonth = new TextField();
     private TextField beforeMonth = new TextField();
     private TextField threeMonthTotal = new TextField();
-    
     @Override
     public void start(Stage primaryStage) {
         
@@ -84,9 +108,11 @@ public class LogicProblem0522 extends Application {
         instructions.setText(instr);
         
         //Query the db for a list of customer IDs; add them to cb.
-        
+        cb.getItems().addAll(getCustomerIDs());
         
         //Add the labels and fields to the summary pane.
+        summaryPane.setHgap(5.0);
+        summaryPane.setVgap(5.0);
         summaryPane.add(new Label("Rewards This Month:"), 0, 0);
         summaryPane.add(currentMonth, 1, 0);
         summaryPane.add(new Label("Rewards Last Month:"), 0, 1);
@@ -95,6 +121,10 @@ public class LogicProblem0522 extends Application {
         summaryPane.add(beforeMonth, 1, 2);
         summaryPane.add(new Label("Three Month Total:"), 0, 3);
         summaryPane.add(threeMonthTotal, 1, 3);
+        currentMonth.setEditable(false);
+        lastMonth.setEditable(false);
+        beforeMonth.setEditable(false);
+        threeMonthTotal.setEditable(false);
         
         //Prepare the scene.
         VBox root = new VBox();
