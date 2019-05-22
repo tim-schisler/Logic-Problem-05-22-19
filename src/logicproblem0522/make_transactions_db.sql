@@ -1,7 +1,7 @@
+DROP DATABASE IF EXISTS rewarddb;
 CREATE DATABASE rewarddb;
 USE rewarddb;
 
-DROP TABLE IF EXISTS transactions;
 CREATE TABLE transactions (
 	trans_id INT UNSIGNED NOT NULL AUTO_INCREMENT,
     customer_id INT UNSIGNED NOT NULL,
@@ -21,3 +21,24 @@ INSERT INTO transactions (customer_id, total, trans_date)
     (2, 200, '2019/04/02'),
     (2, 55, '2019/05/03'),
     (2, 120, '2019/05/20');
+
+-- Create user and grant privileges
+DELIMITER //
+CREATE PROCEDURE drop_user_if_exists()
+BEGIN
+DECLARE userCount BIGINT DEFAULT 0 ;
+SELECT COUNT(*) INTO userCount FROM mysql.user
+WHERE User = 'audience' and  Host = 'localhost';
+IF userCount > 0 THEN
+DROP USER audience@localhost;
+END IF;
+END ; //
+DELIMITER ;
+
+
+CALL drop_user_if_exists() ;
+CREATE USER audience@localhost IDENTIFIED BY 'sesame';
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP
+ON rewarddb.*
+TO audience@localhost;
+USE rewarddb;
