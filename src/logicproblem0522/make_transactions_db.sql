@@ -17,7 +17,7 @@ INSERT INTO transactions (customer_id, total, trans_date)
     (1, 101, '2019/04/28'),
     (1, 50, '2019/05/09'),
     (1, 120, '2019/05/21'),
-    (2, 100, '2019/03/01'),
+    (2, 100, '2019/03/03'),
     (2, 200, '2019/04/02'),
     (2, 55, '2019/05/03'),
     (2, 120, '2019/05/20');
@@ -42,3 +42,5 @@ GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP
 ON rewarddb.*
 TO audience@localhost;
 USE rewarddb;
+
+SELECT * FROM transactions WHERE customer_id = 2;

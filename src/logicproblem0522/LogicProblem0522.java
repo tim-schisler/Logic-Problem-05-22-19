@@ -26,8 +26,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Calendar;
 import javafx.application.Application;
-import javafx.event.*;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -36,6 +36,14 @@ import javafx.stage.Stage;
 
 
 public class LogicProblem0522 extends Application {
+    /**
+     The following textfields exist to display information about rewards earned.
+     They will be used in the start method and updated by an event handler.
+     */
+    private TextField currentMonth = new TextField();
+    private TextField lastMonth = new TextField();
+    private TextField beforeMonth = new TextField();
+    private TextField threeMonthTotal = new TextField();
     
     /**
      lpConnection method: makes connection to the database
@@ -86,14 +94,80 @@ public class LogicProblem0522 extends Application {
         return ids;
     }
     
+    /**
+     calculateReward method: returns the number of reward points earned
+     for a given transaction total.
+     */
+    private static int calculateReward(int total) {
+        if (total <= 50) {
+            return 0;
+        } else if (total <= 100) {
+            return total - 50;
+        } else {
+            int dblPts = total - 100;
+            return 50 + 2 * dblPts;
+        }
+    }
+    
+    /**
+     setRewardFields method: updates the rewards text fields to reflect
+     a given customer ID number.
+     */
+    private void setRewardFields(int ID) {
+        String query = "SELECT * FROM transactions "
+                + "WHERE customer_id = " + ID;
+        Connection conn = lpConnection();
+        int rw1 = 0,    //these variables accumulate rewards for each month
+            rw2 = 0,
+            rw3 = 0;
+        int rwTotal = 0;
+        int mo = -1;
+        Calendar now = Calendar.getInstance();  //the current date+time
+        
+        try {
+            Statement st = conn.createStatement();
+            ResultSet rs = st.executeQuery(query);
+            while( rs.next() ) {    //loop through each record in the DB.
+                mo = (  //test how many months ago the transaction was.
+                        now.get(Calendar.MONTH)
+                        - rs.getDate("trans_date").getMonth()
+                        );
+                //accumulate reward points for the appropriate month.
+                switch(mo) {
+                    case 0:     //current month
+                        rw1 += calculateReward(rs.getInt("total"));
+                        break;
+                    case 1:     //last month
+                    case -11:
+                        rw2 += calculateReward(rs.getInt("total"));
+                        break;
+                    case 2:     //month before last
+                    case -10:
+                        rw3 += calculateReward(rs.getInt("total"));
+                        break;
+                    default:
+                        break;
+                }   
+            }
+            //compute the 3-month total.
+            rwTotal = rw1 + rw2 + rw3;
+            rs.close();
+            st.close();
+            conn.close();
+        } catch (SQLException e) {
+            System.out.println(e);
+        }
+        
+        //set the text fields with the computed rewards totals.
+        currentMonth.setText(Integer.toString(rw1));
+        lastMonth.setText(Integer.toString(rw2));
+        beforeMonth.setText(Integer.toString(rw3));
+        threeMonthTotal.setText(Integer.toString(rwTotal));
+    }
     
     /**
      start method: sets up the GUI for this JavaFX application.
      */
-    private TextField currentMonth = new TextField();
-    private TextField lastMonth = new TextField();
-    private TextField beforeMonth = new TextField();
-    private TextField threeMonthTotal = new TextField();
     @Override
     public void start(Stage primaryStage) {
         
@@ -110,7 +184,12 @@ public class LogicProblem0522 extends Application {
         //Query the db for a list of customer IDs; add them to cb.
         cb.getItems().addAll(getCustomerIDs());
         
-        //Add the labels and fields to the summary pane.
+        //Connect event handler to update summary pane when an ID is chosen.
+        cb.setOnAction(e -> {
+            setRewardFields((Integer)cb.getValue());
+        });
+        
+        //Add the labels and fields to the summary pane, and format.
         summaryPane.setHgap(5.0);
         summaryPane.setVgap(5.0);
         summaryPane.add(new Label("Rewards This Month:"), 0, 0);
